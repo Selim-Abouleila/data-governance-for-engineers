@@ -1,0 +1,16 @@
+# Virtual environments & Python caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local OpenRefine binaries (if any)
+OpenRefine/
+
+# Duplicate working folder
+02_CTP2/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/

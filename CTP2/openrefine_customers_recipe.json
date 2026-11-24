@@ -1,0 +1,235 @@
+[
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "first_name",
+    "expression": "grel:value.trim().toTitlecase()",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Trim whitespace and normalise first_name to Title Case"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "last_name",
+    "expression": "grel:value.trim().toTitlecase()",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Trim whitespace and normalise last_name to Title Case"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "email",
+    "expression": "grel:value.trim().toLowercase().replace(\"@@\", \"@\").replace(\"..\", \".\")",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Trim, lowercase, and fix double '@@' or '..' typos in email"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "email",
+    "expression": "grel:if(isNotNull(value.match(/^[^@\\s]+@[^@\\s]+\\.[a-zA-Z]{2,}$/)), value, null)",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Nullify syntactically invalid email addresses missing domain or '@'"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "country",
+    "expression": "grel:value.trim()",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Trim leading and trailing spaces in country"
+  },
+  {
+    "op": "core/mass-edit",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "country",
+    "expression": "value",
+    "edits": [
+      {
+        "from": ["FR", "fr", "FRA", "France", "france"],
+        "fromBlank": false,
+        "fromError": false,
+        "to": "FR"
+      },
+      {
+        "from": ["DE", "DEU", "Germany", "Allemagne"],
+        "fromBlank": false,
+        "fromError": false,
+        "to": "DE"
+      },
+      {
+        "from": ["BE", "BEL", "Belgium", "Belgique"],
+        "fromBlank": false,
+        "fromError": false,
+        "to": "BE"
+      },
+      {
+        "from": ["ES", "es", "Spain", "Espagne"],
+        "fromBlank": false,
+        "fromError": false,
+        "to": "ES"
+      }
+    ],
+    "description": "Standardise 17 country spellings into ISO-3166-1 alpha-2 codes (FR, DE, BE, ES)"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "postal_code",
+    "expression": "grel:if(value.trim().length() == 4, \"0\" + value.trim(), value.trim())",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Restore leading zero on 4-digit French postal codes (e.g. 1300 -> 01300)"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "loyalty_tier",
+    "expression": "grel:value.trim().toLowercase().replace(\"platinium\", \"platinum\")",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Standardise loyalty_tier casing and fix 'Platinium' typo to 'platinum'"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "signup_date",
+    "expression": "grel:if(isNotNull(value.trim().match(/^\\d{4}\\/\\d{2}\\/\\d{2}$/)), value.trim().replace(\"/\", \"-\"), if(isNotNull(value.trim().match(/^\\d{2}\\/\\d{2}\\/\\d{4}$/)), value.trim().toDate(\"dd/MM/yyyy\").toString(\"yyyy-MM-dd\"), if(isNotNull(value.trim().match(/^\\d{2}-\\d{2}-\\d{4}$/)), value.trim().toDate(\"MM-dd-yyyy\").toString(\"yyyy-MM-dd\"), value.trim())))",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Convert mixed signup_date formats (YYYY/MM/DD, DD/MM/YYYY, MM-DD-YYYY) to ISO YYYY-MM-DD"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "birth_date",
+    "expression": "grel:if(isNotNull(value.trim().match(/^\\d{4}\\/\\d{2}\\/\\d{2}$/)), value.trim().replace(\"/\", \"-\"), if(isNotNull(value.trim().match(/^\\d{2}\\/\\d{2}\\/\\d{4}$/)), value.trim().toDate(\"dd/MM/yyyy\").toString(\"yyyy-MM-dd\"), if(isNotNull(value.trim().match(/^\\d{2}-\\d{2}-\\d{4}$/)), value.trim().toDate(\"MM-dd-yyyy\").toString(\"yyyy-MM-dd\"), value.trim())))",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Convert mixed birth_date formats (YYYY/MM/DD, DD/MM/YYYY, MM-DD-YYYY) to ISO YYYY-MM-DD"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "birth_date",
+    "expression": "grel:if(or(value < \"1906-01-01\", value > \"2026-11-24\"), null, value)",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Nullify impossible birth_date values (< 1906-01-01 or in the future > 2026-11-24)"
+  },
+  {
+    "op": "core/text-transform",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "marketing_consent",
+    "expression": "grel:value.trim().toLowercase()",
+    "onError": "keep-original",
+    "repeat": false,
+    "repeatCount": 10,
+    "description": "Normalise marketing_consent boolean strings to lowercase true/false"
+  },
+  {
+    "op": "core/row-reorder",
+    "mode": "record-based",
+    "sorting": {
+      "criteria": [
+        {
+          "errorPosition": 1,
+          "valueType": "string",
+          "column": "customer_id",
+          "blankPosition": 2,
+          "reverse": false,
+          "caseSensitive": false
+        }
+      ]
+    },
+    "description": "Reorder rows permanently by customer_id to group duplicate IDs"
+  },
+  {
+    "op": "core/blank-down",
+    "engineConfig": {
+      "facets": [],
+      "mode": "row-based"
+    },
+    "columnName": "customer_id",
+    "description": "Blank down duplicate customer_id values"
+  },
+  {
+    "op": "core/row-removal",
+    "engineConfig": {
+      "facets": [
+        {
+          "type": "list",
+          "name": "customer_id",
+          "expression": "isBlank(value)",
+          "columnName": "customer_id",
+          "invert": false,
+          "omitBlank": false,
+          "omitError": false,
+          "selection": [
+            {
+              "v": {
+                "v": true,
+                "l": "true"
+              }
+            }
+          ],
+          "selectBlank": false,
+          "selectError": false
+        }
+      ],
+      "mode": "row-based"
+    },
+    "description": "Remove duplicate customer_id rows where customer_id was blanked down"
+  }
+]

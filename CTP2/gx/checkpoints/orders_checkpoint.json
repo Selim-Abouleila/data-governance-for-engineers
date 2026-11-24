@@ -1,0 +1,18 @@
+{
+  "actions": [
+    {
+      "name": "docs",
+      "site_names": [],
+      "type": "update_data_docs"
+    }
+  ],
+  "id": "ce4e6047-7c4f-403f-9d56-5e333590f66a",
+  "name": "orders_checkpoint",
+  "result_format": "SUMMARY",
+  "validation_definitions": [
+    {
+      "id": "56dc140b-ff43-46ac-a211-4aade37ea926",
+      "name": "orders_validation"
+    }
+  ]
+}
