@@ -1,103 +1,108 @@
-"""CTP 2 - Exercise 1: profile customers.csv with pandas and generate quality_scorecard.csv.
-Author: Selim Abouleila
+"""CTP 2 - Exercise 1: profile customers.csv with pandas.
+Student: Selim Abouleila
 Run from the CTP2 folder:  python profile_customers.py
 """
 from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-KIT_DATA = HERE.parent / "shopfast-kit" / "data"
-
-df = pd.read_csv(KIT_DATA / "customers.csv", dtype=str)
+df = pd.read_csv(HERE.parent / "shopfast-kit" / "data" / "customers.csv", dtype=str)
 n = len(df)
-print(f"Total rows in customers.csv: {n}")
+print("Rows:", n)
+print("\nEmpty values per column:\n", df.isna().sum())
 
-# 1. Completeness: email is filled
-missing_email = int(df["email"].isna().sum())
+scorecard = []
 
-# 2. Completeness: phone is filled
-missing_phone = int(df["phone"].isna().sum())
 
-# 3. Completeness: country is filled
-missing_country = int(df["country"].isna().sum())
-
-# 4. Uniqueness: customer_id is unique
-dup_customer_id_rows = int(df["customer_id"].duplicated(keep=False).sum())
-
-# 5. Uniqueness (TODO 1): normalised email (strip + lower case) is unique across non-null emails
-norm_email = df["email"].dropna().str.strip().str.lower()
-dup_norm_email_rows = int(norm_email.duplicated(keep=False).sum())
-
-# 6. Validity (TODO 2): email matches ^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$ (among non-null emails)
-email_regex = r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$"
-invalid_email_rows = int((~df["email"].dropna().str.match(email_regex)).sum())
-
-# 7. Consistency (TODO 3): country uses standard ISO-2 code in {FR, DE, BE, ES}
-print("\nDistinct country spellings (value_counts):")
-print(df["country"].value_counts(dropna=False))
-num_country_spellings = int(df["country"].nunique(dropna=True))
-non_standard_country_rows = int((df["country"].notna() & (~df["country"].isin(["FR", "DE", "BE", "ES"]))).sum())
-
-# 8. Consistency (TODO 4): signup_date is in ISO format YYYY-MM-DD
-iso_date_regex = r"^\d{4}-\d{2}-\d{2}$"
-bad_signup_format_rows = int((~df["signup_date"].fillna("").str.match(iso_date_regex)).sum())
-
-# 9. Consistency: birth_date is in ISO format YYYY-MM-DD
-bad_bday_format_rows = int((~df["birth_date"].fillna("").str.match(iso_date_regex)).sum())
-
-# 10. Validity (TODO 5): loyalty_tier in {bronze, silver, gold, platinum}
-valid_tiers = {"bronze", "silver", "gold", "platinum"}
-invalid_loyalty_tier_rows = int((~df["loyalty_tier"].fillna("").isin(valid_tiers)).sum())
-
-# 11. Accuracy (TODO 6): birth_date is realistic (not in the future and not before 1906-01-01)
-bday_dt = pd.to_datetime(df["birth_date"], format="%Y-%m-%d", errors="coerce")
-unrealistic_bday_rows = int(((bday_dt < "1906-01-01") | (bday_dt > "2026-11-24")).sum())
-print("\nUnrealistic ISO birth dates (<1906 or >2026-11-24):", df.loc[(bday_dt < "1906-01-01") | (bday_dt > "2026-11-24"), ["customer_id", "birth_date"]].to_dict(orient="records"))
-
-# 12. Validity (TODO 7): French postal codes have exactly 5 digits
-is_france = df["country"].fillna("").str.strip().str.lower().isin({"fr", "france", "fra"})
-bad_fr_postal_rows = int((is_france & (~df["postal_code"].fillna("").str.match(r"^\d{5}$"))).sum())
-bad_all_postal_rows = int((~df["postal_code"].fillna("").str.match(r"^\d{5}$")).sum())
-print(f"Bad French postal codes: {bad_fr_postal_rows} (All rows non-5-digit postal_code: {bad_all_postal_rows})")
-
-# 13. Timeliness: signup_date is not in the future (<= 2026-11-24) and chronologically valid
-signup_dt = pd.to_datetime(df["signup_date"], format="%Y-%m-%d", errors="coerce")
-future_signup_rows = int((signup_dt > "2026-11-24").sum())
-print(f"Future signup_date (>2026-11-24): {future_signup_rows}")
-
-rules = [
-    ("Completeness", "email is filled (not null)", "email", "df['email'].isna().sum()", missing_email, n, "High", "Steward (CRM Data Steward) & Custodian (enforce NOT NULL at signup)"),
-    ("Completeness", "phone is filled (not null)", "phone", "df['phone'].isna().sum()", missing_phone, n, "Medium", "Steward (CRM Data Steward)"),
-    ("Completeness", "country is filled (not null)", "country", "df['country'].isna().sum()", missing_country, n, "Medium", "Steward (CRM Data Steward) & Custodian (mandatory dropdown in UI)"),
-    ("Uniqueness", "customer_id is unique across all rows", "customer_id", "df['customer_id'].duplicated(keep=False).sum()", dup_customer_id_rows, n, "High", "Custodian (Data Platform Team - primary key constraint & ingestion dedup)"),
-    ("Uniqueness", "normalised email (strip + lowercase) belongs to a single customer", "email", "df['email'].dropna().str.strip().str.lower().duplicated(keep=False).sum()", dup_norm_email_rows, n, "High", "Owner (Head of CRM) & Custodian (unique index on lower(trim(email)))"),
-    ("Validity", "email matches standard email syntax ^[^@\\s]+@[^@\\s]+\\.[a-zA-Z]{2,}$", "email", "(~df['email'].dropna().str.match(r'^[^@\\s]+@[^@\\s]+\\.[a-zA-Z]{2,}$')).sum()", invalid_email_rows, n, "High", "Custodian (frontend/API email validation) & Steward (quarantine invalid emails)"),
-    ("Validity", "loyalty_tier is in allowed set {bronze, silver, gold, platinum}", "loyalty_tier", "(~df['loyalty_tier'].isin(['bronze','silver','gold','platinum'])).sum()", invalid_loyalty_tier_rows, n, "Medium", "Steward (normalise casing/typos like 'Platinium') & Custodian (ENUM/CHECK constraint)"),
-    ("Validity", "French postal_code has exactly 5 digits (^\\d{5}$)", "postal_code", "(is_france & ~df['postal_code'].str.match(r'^\\d{5}$')).sum()", bad_fr_postal_rows, n, "Medium", "Steward (restore leading zeros / fix truncated codes) & Custodian (store as TEXT(5))"),
-    ("Consistency", "country uses canonical ISO-2 code in {FR, DE, BE, ES} (17 distinct spellings found)", "country", "(df['country'].notna() & ~df['country'].isin(['FR','DE','BE','ES'])).sum()", non_standard_country_rows, n, "Medium", "Steward (define ISO-2 mapping reference table) & Custodian (enforce country lookup)"),
-    ("Consistency", "signup_date is formatted as ISO-8601 YYYY-MM-DD", "signup_date", "(~df['signup_date'].str.match(r'^\\d{4}-\\d{2}-\\d{2}$')).sum()", bad_signup_format_rows, n, "Medium", "Custodian (parse & store as DATE type in Silver layer)"),
-    ("Consistency", "birth_date is formatted as ISO-8601 YYYY-MM-DD", "birth_date", "(~df['birth_date'].str.match(r'^\\d{4}-\\d{2}-\\d{2}$')).sum()", bad_bday_format_rows, n, "Medium", "Custodian (parse & store as DATE type in Silver layer)"),
-    ("Accuracy", "birth_date is plausible (between 1906-01-01 and current date)", "birth_date", "((bday_dt < '1906-01-01') | (bday_dt > '2026-11-24')).sum()", unrealistic_bday_rows, n, "Medium", "Steward (nullify or verify impossible dates like 1890 or future 2028)"),
-    ("Timeliness", "signup_date is a parseable current/historical ISO date (not unparseable or future)", "signup_date", "(pd.to_datetime(df['signup_date'], format='%Y-%m-%d', errors='coerce').isna() | (signup_dt > '2026-11-24')).sum()", int((signup_dt.isna() | (signup_dt > "2026-11-24")).sum()), n, "Low", "Custodian (standardise ingestion timestamp & reject future dates)"),
-]
-
-scorecard_rows = []
-for dim, rule, col, how, fail, total, sev, fixer in rules:
-    score_pct = round(100.0 * (1.0 - fail / total), 2)
-    scorecard_rows.append({
-        "dimension": dim,
+def add_rule(dimension, rule, column, how, failing, severity, owner):
+    score_pct = round(100 * (1 - failing / n), 2)
+    scorecard.append({
+        "dimension": dimension,
         "rule_in_plain_words": rule,
-        "column": col,
+        "column": column,
         "how_you_measured_it": how,
-        "failing_rows": fail,
-        "total_rows": total,
+        "failing_rows": int(failing),
+        "total_rows": n,
         "score_pct": score_pct,
-        "severity_high_medium_low": sev,
-        "who_should_fix_owner_steward_custodian": fixer,
+        "severity_high_medium_low": severity,
+        "who_should_fix_owner_steward_custodian": owner,
     })
 
-scorecard_df = pd.DataFrame(scorecard_rows)
-scorecard_df.to_csv(HERE / "quality_scorecard.csv", index=False)
-scorecard_df.to_csv(HERE / "quality_scorecard_template.csv", index=False)
-print("\nGenerated quality_scorecard.csv with", len(scorecard_df), "rules across", scorecard_df["dimension"].nunique(), "dimensions:")
-print(scorecard_df[["dimension", "column", "failing_rows", "total_rows", "score_pct", "severity_high_medium_low"]].to_string(index=False))
+
+# Completeness
+add_rule("Completeness", "email is not empty", "email", "df['email'].isna().sum()",
+         df["email"].isna().sum(), "High", "Steward (contact CRM) & Custodian (make required)")
+add_rule("Completeness", "phone is not empty", "phone", "df['phone'].isna().sum()",
+         df["phone"].isna().sum(), "Medium", "Steward")
+add_rule("Completeness", "country is not empty", "country", "df['country'].isna().sum()",
+         df["country"].isna().sum(), "Medium", "Custodian (make country dropdown mandatory)")
+
+# Uniqueness
+dup_ids = df["customer_id"].duplicated(keep=False).sum()
+print("\nDuplicated customer_id rows:", dup_ids)
+add_rule("Uniqueness", "customer_id is unique", "customer_id", "df['customer_id'].duplicated(keep=False).sum()",
+         dup_ids, "High", "Custodian (primary key check)")
+
+norm_email = df["email"].dropna().str.strip().str.lower()
+dup_emails = norm_email.duplicated(keep=False).sum()
+print("Duplicated normalised emails:", dup_emails)
+add_rule("Uniqueness", "one account per email (lowercase + trimmed)", "email",
+         "df['email'].dropna().str.strip().str.lower().duplicated(keep=False).sum()",
+         dup_emails, "High", "Owner (CRM) & Custodian (unique index)")
+
+# Validity
+email_re = r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$"
+bad_emails = (~df["email"].dropna().str.match(email_re)).sum()
+print("Invalid email format:", bad_emails)
+add_rule("Validity", "email has a valid format", "email",
+         "(~df['email'].dropna().str.match(email_re)).sum()",
+         bad_emails, "High", "Custodian (form validation) & Steward")
+
+tiers = ["bronze", "silver", "gold", "platinum"]
+bad_tiers = (~df["loyalty_tier"].isin(tiers)).sum()
+print("Invalid loyalty_tier:", bad_tiers)
+add_rule("Validity", "loyalty_tier is bronze, silver, gold or platinum", "loyalty_tier",
+         "(~df['loyalty_tier'].isin(tiers)).sum()",
+         bad_tiers, "Medium", "Steward (fix typos) & Custodian (dropdown/enum)")
+
+is_fr = df["country"].fillna("").str.strip().str.lower().isin(["fr", "france", "fra"])
+bad_zip = (is_fr & ~df["postal_code"].fillna("").str.match(r"^\d{5}$")).sum()
+print("Bad French postal codes:", bad_zip)
+add_rule("Validity", "French postal code has 5 digits", "postal_code",
+         "(is_fr & ~df['postal_code'].str.match(r'^\\d{5}$')).sum()",
+         bad_zip, "Medium", "Steward (add missing leading 0) & Custodian (store as text)")
+
+# Consistency
+print("\nCountry spellings:\n", df["country"].value_counts(dropna=False))
+bad_country = (df["country"].notna() & ~df["country"].isin(["FR", "DE", "BE", "ES"])).sum()
+add_rule("Consistency", "country uses standard 2-letter code (FR, DE, BE, ES)", "country",
+         "(df['country'].notna() & ~df['country'].isin(['FR','DE','BE','ES'])).sum()",
+         bad_country, "Medium", "Steward (country mapping) & Custodian")
+
+iso_re = r"^\d{4}-\d{2}-\d{2}$"
+bad_signup = (~df["signup_date"].fillna("").str.match(iso_re)).sum()
+print("Non-ISO signup_date:", bad_signup)
+add_rule("Consistency", "signup_date uses YYYY-MM-DD format", "signup_date",
+         "(~df['signup_date'].str.match(r'^\\d{4}-\\d{2}-\\d{2}$')).sum()",
+         bad_signup, "Medium", "Custodian (standardise date format)")
+
+# Accuracy
+bday = pd.to_datetime(df["birth_date"], format="%Y-%m-%d", errors="coerce")
+bad_bday = ((bday < "1906-01-01") | (bday > "2026-11-24")).sum()
+print("Unrealistic birth dates:", bad_bday)
+add_rule("Accuracy", "birth_date is realistic (between 1906 and today)", "birth_date",
+         "((bday < '1906-01-01') | (bday > '2026-11-24')).sum()",
+         bad_bday, "Medium", "Steward (check or clear impossible dates)")
+
+# Timeliness
+signup_dt = pd.to_datetime(df["signup_date"], format="mixed", dayfirst=True, errors="coerce")
+future_signup = (signup_dt.isna() | (signup_dt > "2026-11-24")).sum()
+print("Future or unparseable signup_date:", future_signup)
+add_rule("Timeliness", "signup_date is not in the future", "signup_date",
+         "(signup_dt.isna() | (signup_dt > '2026-11-24')).sum()",
+         future_signup, "Low", "Custodian (reject future signup dates)")
+
+out = pd.DataFrame(scorecard)
+out.to_csv(HERE / "quality_scorecard.csv", index=False)
+print("\nSaved quality_scorecard.csv:")
+print(out[["dimension", "column", "failing_rows", "score_pct", "severity_high_medium_low"]].to_string(index=False))

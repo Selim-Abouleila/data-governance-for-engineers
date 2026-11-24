@@ -1,7 +1,7 @@
 {
   "expectations": [
     {
-      "id": "63390a42-5727-4c56-b506-3b0fb4df2060",
+      "id": "23093459-353e-4dfa-a7c7-6f155bd2c354",
       "kwargs": {
         "column": "payment_id"
       },
@@ -10,7 +10,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "4a945cda-4c59-4120-86f8-ab0eafdb0099",
+      "id": "937cbf05-8120-4e9d-ac53-459c210deb50",
       "kwargs": {
         "column": "payment_id"
       },
@@ -19,7 +19,7 @@
       "type": "expect_column_values_to_be_unique"
     },
     {
-      "id": "f8cc8e6c-6d67-4fec-95a9-9678c15ee83d",
+      "id": "07345ecc-0229-4f78-b22a-f2e1e9dde347",
       "kwargs": {
         "column": "amount"
       },
@@ -28,7 +28,7 @@
       "type": "expect_column_values_to_not_be_null"
     },
     {
-      "id": "7ffc2618-bfdc-4896-bb03-4fde8684fbf0",
+      "id": "85d7fd41-f772-4016-b39c-df2cc9a22c70",
       "kwargs": {
         "column": "currency",
         "value_set": [
@@ -40,7 +40,7 @@
       "type": "expect_column_values_to_be_in_set"
     },
     {
-      "id": "a37f5523-fbb6-447d-a654-2ec91a4621c5",
+      "id": "484f95d5-2b98-4d5d-9f6d-a8600dbae75b",
       "kwargs": {
         "column": "method",
         "value_set": [
@@ -55,7 +55,7 @@
       "type": "expect_column_values_to_be_in_set"
     },
     {
-      "id": "03c0a7a4-ff87-4827-922b-4f4b5d3db9dc",
+      "id": "71bbdc56-a233-4fc7-a250-19c23024ecfd",
       "kwargs": {
         "column": "amount",
         "max_value": 5000.0,
@@ -66,7 +66,7 @@
       "type": "expect_column_values_to_be_between"
     },
     {
-      "id": "c1e0a8cc-58ec-43f0-8609-a1ac83f6520c",
+      "id": "98d830a8-b7a7-45ae-90fd-df34eb0dcef5",
       "kwargs": {
         "column": "amount",
         "max_value": 500.0,
@@ -77,7 +77,7 @@
       "type": "expect_column_mean_to_be_between"
     },
     {
-      "id": "615f5df7-021f-4c47-8180-5c560e2987b2",
+      "id": "bd2353d4-3d92-4e3e-b25d-e5758cea63a6",
       "kwargs": {
         "column": "amount",
         "max_value": 400.0,
@@ -88,7 +88,7 @@
       "type": "expect_column_median_to_be_between"
     },
     {
-      "id": "4499aef6-f744-4755-b635-8e4bd9dd4ba5",
+      "id": "37dcb640-fd72-48f0-a6b6-697bfe749f4c",
       "kwargs": {
         "column": "amount_txt",
         "regex": "^\\d{1,4}(\\.\\d{1,2})?$"

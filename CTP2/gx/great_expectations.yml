@@ -87,11 +87,11 @@ fluent_datasources:
     assets:
       orders:
         type: dataframe
-        id: 14584f67-2a26-4ff4-929f-d64886a5b46e
+        id: f10cc223-1f27-4c16-9e09-dcd9aaf1474f
         batch_metadata: {}
         batch_definitions:
           all_orders:
-            id: 40b53b54-8b6b-42ca-988a-3961ae57ea23
+            id: 08cbe1a2-1d5e-4868-9e93-44db36757840
             partitioner:
   shopfast_payments:
     type: pandas
@@ -99,11 +99,11 @@ fluent_datasources:
     assets:
       payments:
         type: dataframe
-        id: 1aa627df-8ea2-47e9-8e02-d608dbaa9284
+        id: b3d4afd7-4914-48fe-9766-188cd3d377d3
         batch_metadata: {}
         batch_definitions:
           whole:
-            id: 77389adb-8031-4ebd-9098-6251829876cf
+            id: 37bdc431-2cbc-49f7-a18b-7dbb03c95d8f
             partitioner:
 analytics_enabled:
 data_context_id: 9b3c65b3-2cc6-4e46-9218-9132e6022bc7

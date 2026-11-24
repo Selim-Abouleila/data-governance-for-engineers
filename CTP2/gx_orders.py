@@ -1,5 +1,5 @@
-"""CTP 2 - Exercise 3: Complete Great Expectations suite for ShopFast orders (12 expectations, GX Core 1.x).
-Author: Selim Abouleila
+"""CTP 2 - Exercise 3: expectation suite for ShopFast orders (12 expectations, GX Core 1.x).
+Student: Selim Abouleila
 Run from the CTP2 folder:  python gx_orders.py
 """
 import pandas as pd
@@ -19,70 +19,40 @@ batch_def = asset.add_batch_definition_whole_dataframe("all_orders")
 suite = context.suites.add_or_update(gx.ExpectationSuite(name="orders_suite"))
 E = gx.expectations
 for e in [
-    # 1. Table volume check
     E.ExpectTableRowCountToBeBetween(min_value=1000, max_value=100000),
-    # 2. Primary key completeness
     E.ExpectColumnValuesToNotBeNull(column="order_id"),
-    # 3. Primary key uniqueness
     E.ExpectColumnValuesToBeUnique(column="order_id"),
-    # 4. TODO 1: customer_id must not be null
+    # 4. customer_id must not be null
     E.ExpectColumnValuesToNotBeNull(column="customer_id"),
-    # 5. TODO 2: customer_id must exist in customers (referential integrity)
+    # 5. customer_id must exist in customers.csv
     E.ExpectColumnValuesToBeInSet(column="customer_id", value_set=list(set(customers["customer_id"].dropna()))),
-    # 6. TODO 3a: order_date must not be null
+    # 6. order_date must not be null
     E.ExpectColumnValuesToNotBeNull(column="order_date"),
-    # 7. TODO 3b: order_date must match ISO format YYYY-MM-DD
+    # 7. order_date must look like YYYY-MM-DD
     E.ExpectColumnValuesToMatchRegex(column="order_date", regex=r"^\d{4}-\d{2}-\d{2}$"),
-    # 8. TODO 4: no order in the future (order_date_dt <= 2026-11-24)
-    E.ExpectColumnValuesToBeBetween(
-        column="order_date_dt",
-        min_value=pd.Timestamp("2020-01-01"),
-        max_value=pd.Timestamp("2026-11-24"),
-    ),
-    # 9. TODO 5: status only in allowed canonical values
-    E.ExpectColumnValuesToBeInSet(
-        column="status",
-        value_set=["pending", "shipped", "delivered", "cancelled", "returned"],
-    ),
-    # 10. TODO 6a: channel only in allowed values
-    E.ExpectColumnValuesToBeInSet(
-        column="channel",
-        value_set=["web", "mobile_app", "marketplace"],
-    ),
-    # 11. TODO 6b: shipping_country only in allowed ISO-2 country codes
-    E.ExpectColumnValuesToBeInSet(
-        column="shipping_country",
-        value_set=["FR", "BE", "DE", "ES"],
-    ),
-    # 12. TODO 7: total_amount_eur strictly positive and below a sensible maximum (10,000 EUR)
-    E.ExpectColumnValuesToBeBetween(
-        column="total_amount_eur",
-        min_value=0.01,
-        max_value=10000.0,
-    ),
+    # 8. no order in the future
+    E.ExpectColumnValuesToBeBetween(column="order_date_dt", min_value=pd.Timestamp("2020-01-01"), max_value=pd.Timestamp("2026-11-24")),
+    # 9. status only in allowed values
+    E.ExpectColumnValuesToBeInSet(column="status", value_set=["pending", "shipped", "delivered", "cancelled", "returned"]),
+    # 10. channel only in allowed values
+    E.ExpectColumnValuesToBeInSet(column="channel", value_set=["web", "mobile_app", "marketplace"]),
+    # 11. shipping_country only in allowed values
+    E.ExpectColumnValuesToBeInSet(column="shipping_country", value_set=["FR", "BE", "DE", "ES"]),
+    # 12. total_amount_eur strictly positive and below a sensible max
+    E.ExpectColumnValuesToBeBetween(column="total_amount_eur", min_value=0.01, max_value=10000),
 ]:
     suite.add_expectation(e)
 suite.save()
 
-vd = context.validation_definitions.add_or_update(
-    gx.ValidationDefinition(name="orders_validation", data=batch_def, suite=suite)
-)
-checkpoint = context.checkpoints.add_or_update(
-    gx.Checkpoint(
-        name="orders_checkpoint",
-        validation_definitions=[vd],
-        actions=[gx.checkpoint.UpdateDataDocsAction(name="docs")],
-    )
-)
+vd = context.validation_definitions.add_or_update(gx.ValidationDefinition(name="orders_validation", data=batch_def, suite=suite))
+checkpoint = context.checkpoints.add_or_update(gx.Checkpoint(name="orders_checkpoint", validation_definitions=[vd],
+                                                             actions=[gx.checkpoint.UpdateDataDocsAction(name="docs")]))
 result = checkpoint.run(batch_parameters={"dataframe": orders})
 
-print(f"\nTotal expectations in suite: {len(suite.expectations)}")
+print("\nTotal expectations:", len(suite.expectations))
 print("Suite passed:", result.success)
 for vr in result.run_results.values():
     for r in vr.results:
         cfg = r.expectation_config
-        print(
-            f"{'PASS' if r.success else 'FAIL'}  {cfg.type:<45} "
-            f"{cfg.kwargs.get('column', ''):<18} unexpected={r.result.get('unexpected_count', '-')}"
-        )
+        print(f"{'PASS' if r.success else 'FAIL'}  {cfg.type:<45} {cfg.kwargs.get('column', ''):<18} unexpected={r.result.get('unexpected_count', '-')}")
 print("\nOpen the report: gx/uncommitted/data_docs/local_site/index.html")

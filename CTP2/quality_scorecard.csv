@@ -1,14 +1,13 @@
 dimension,rule_in_plain_words,column,how_you_measured_it,failing_rows,total_rows,score_pct,severity_high_medium_low,who_should_fix_owner_steward_custodian
-Completeness,email is filled (not null),email,df['email'].isna().sum(),48,1241,96.13,High,Steward (CRM Data Steward) & Custodian (enforce NOT NULL at signup)
-Completeness,phone is filled (not null),phone,df['phone'].isna().sum(),30,1241,97.58,Medium,Steward (CRM Data Steward)
-Completeness,country is filled (not null),country,df['country'].isna().sum(),37,1241,97.02,Medium,Steward (CRM Data Steward) & Custodian (mandatory dropdown in UI)
-Uniqueness,customer_id is unique across all rows,customer_id,df['customer_id'].duplicated(keep=False).sum(),16,1241,98.71,High,Custodian (Data Platform Team - primary key constraint & ingestion dedup)
-Uniqueness,normalised email (strip + lowercase) belongs to a single customer,email,df['email'].dropna().str.strip().str.lower().duplicated(keep=False).sum(),120,1241,90.33,High,Owner (Head of CRM) & Custodian (unique index on lower(trim(email)))
-Validity,"email matches standard email syntax ^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",email,"(~df['email'].dropna().str.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$')).sum()",28,1241,97.74,High,Custodian (frontend/API email validation) & Steward (quarantine invalid emails)
-Validity,"loyalty_tier is in allowed set {bronze, silver, gold, platinum}",loyalty_tier,"(~df['loyalty_tier'].isin(['bronze','silver','gold','platinum'])).sum()",13,1241,98.95,Medium,Steward (normalise casing/typos like 'Platinium') & Custodian (ENUM/CHECK constraint)
-Validity,French postal_code has exactly 5 digits (^\d{5}$),postal_code,(is_france & ~df['postal_code'].str.match(r'^\d{5}$')).sum(),48,1241,96.13,Medium,Steward (restore leading zeros / fix truncated codes) & Custodian (store as TEXT(5))
-Consistency,"country uses canonical ISO-2 code in {FR, DE, BE, ES} (17 distinct spellings found)",country,"(df['country'].notna() & ~df['country'].isin(['FR','DE','BE','ES'])).sum()",299,1241,75.91,Medium,Steward (define ISO-2 mapping reference table) & Custodian (enforce country lookup)
-Consistency,signup_date is formatted as ISO-8601 YYYY-MM-DD,signup_date,(~df['signup_date'].str.match(r'^\d{4}-\d{2}-\d{2}$')).sum(),303,1241,75.58,Medium,Custodian (parse & store as DATE type in Silver layer)
-Consistency,birth_date is formatted as ISO-8601 YYYY-MM-DD,birth_date,(~df['birth_date'].str.match(r'^\d{4}-\d{2}-\d{2}$')).sum(),174,1241,85.98,Medium,Custodian (parse & store as DATE type in Silver layer)
-Accuracy,birth_date is plausible (between 1906-01-01 and current date),birth_date,((bday_dt < '1906-01-01') | (bday_dt > '2026-11-24')).sum(),8,1241,99.36,Medium,Steward (nullify or verify impossible dates like 1890 or future 2028)
-Timeliness,signup_date is a parseable current/historical ISO date (not unparseable or future),signup_date,"(pd.to_datetime(df['signup_date'], format='%Y-%m-%d', errors='coerce').isna() | (signup_dt > '2026-11-24')).sum()",303,1241,75.58,Low,Custodian (standardise ingestion timestamp & reject future dates)
+Completeness,email is not empty,email,df['email'].isna().sum(),48,1241,96.13,High,Steward (contact CRM) & Custodian (make required)
+Completeness,phone is not empty,phone,df['phone'].isna().sum(),30,1241,97.58,Medium,Steward
+Completeness,country is not empty,country,df['country'].isna().sum(),37,1241,97.02,Medium,Custodian (make country dropdown mandatory)
+Uniqueness,customer_id is unique,customer_id,df['customer_id'].duplicated(keep=False).sum(),16,1241,98.71,High,Custodian (primary key check)
+Uniqueness,one account per email (lowercase + trimmed),email,df['email'].dropna().str.strip().str.lower().duplicated(keep=False).sum(),120,1241,90.33,High,Owner (CRM) & Custodian (unique index)
+Validity,email has a valid format,email,(~df['email'].dropna().str.match(email_re)).sum(),28,1241,97.74,High,Custodian (form validation) & Steward
+Validity,"loyalty_tier is bronze, silver, gold or platinum",loyalty_tier,(~df['loyalty_tier'].isin(tiers)).sum(),13,1241,98.95,Medium,Steward (fix typos) & Custodian (dropdown/enum)
+Validity,French postal code has 5 digits,postal_code,(is_fr & ~df['postal_code'].str.match(r'^\d{5}$')).sum(),48,1241,96.13,Medium,Steward (add missing leading 0) & Custodian (store as text)
+Consistency,"country uses standard 2-letter code (FR, DE, BE, ES)",country,"(df['country'].notna() & ~df['country'].isin(['FR','DE','BE','ES'])).sum()",299,1241,75.91,Medium,Steward (country mapping) & Custodian
+Consistency,signup_date uses YYYY-MM-DD format,signup_date,(~df['signup_date'].str.match(r'^\d{4}-\d{2}-\d{2}$')).sum(),303,1241,75.58,Medium,Custodian (standardise date format)
+Accuracy,birth_date is realistic (between 1906 and today),birth_date,((bday < '1906-01-01') | (bday > '2026-11-24')).sum(),8,1241,99.36,Medium,Steward (check or clear impossible dates)
+Timeliness,signup_date is not in the future,signup_date,(signup_dt.isna() | (signup_dt > '2026-11-24')).sum(),0,1241,100.0,Low,Custodian (reject future signup dates)
