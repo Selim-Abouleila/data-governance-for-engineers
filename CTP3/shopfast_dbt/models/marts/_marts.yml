@@ -1,0 +1,131 @@
+version: 2
+
+models:
+  - name: fct_orders
+    config:
+      tags: [pii]
+    description: "One row per order with its order total, refunds and net revenue. Sales and Finance use this table. Order totals are not proof of captured cash."
+    meta:
+      owner: "Paul Girard (Head of Finance)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: finance
+      tier: gold
+    columns:
+      - name: order_id
+        description: "{{ doc('order') }}"
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: customer_id
+        description: "{{ doc('customer') }}"
+        data_type: integer
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: order_date
+        description: "Date the order was placed, copied from stg_orders. Missing and future source dates can remain."
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: status
+        description: "Order state: pending, shipped, delivered, cancelled or returned."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: channel
+        description: "Sales channel used for the order: web, mobile_app or marketplace."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: shipping_country
+        description: "Country receiving the order: FR, DE, ES or BE."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: gross_revenue_eur
+        description: "{{ doc('gross_revenue') }}"
+        data_type: decimal(10,2)
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: refunded_eur
+        description: "Sum of positive payment amounts with payment_status = 'refunded' for this order, in EUR including VAT. Zero when there is no matching refund. Example: a EUR 24 refund gives 24.00."
+        data_type: decimal(38,2)
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: net_revenue_eur
+        description: "{{ doc('net_revenue') }}"
+        data_type: double
+        tags: [pii]
+        meta: {classification: restricted}
+
+  - name: dim_customers
+    config:
+      tags: [pii]
+    description: "One row per customer account with contact details, lifetime order metrics and the latest non-cancelled order date up to the build date."
+    meta:
+      owner: "Sara Martin (Head of Sales)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: customer
+      tier: gold
+    columns:
+      - name: customer_id
+        description: "{{ doc('customer') }}"
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: first_name
+        description: "Customer's first name, copied from stg_customers."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: last_name
+        description: "Customer's last name, copied from stg_customers."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: email
+        description: "Customer email, trimmed and lower-cased. Missing and malformed source emails can remain."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: country_code
+        description: "Customer's standardized country: FR, DE, ES or BE. NULL when the source country is missing or unrecognized."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: loyalty_tier
+        description: "Customer loyalty level: bronze, silver, gold or platinum."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: signup_date
+        description: "Date the customer account was created, in YYYY-MM-DD."
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: has_marketing_consent
+        description: "Supplied marketing consent flag, copied from stg_customers."
+        data_type: boolean
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: lifetime_orders
+        description: "Count of all orders linked to the account, including cancelled orders and rows with missing or future dates. Zero for an account with no orders. This count does not decide active or churned status."
+        data_type: bigint
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: last_order_date
+        description: |
+          Latest non-cancelled order date on or before CURRENT_DATE when this table is built.
+          NULL if the account has no such dated order. Missing dates do not count.
+          Rebuild for a new reporting date before using the following rules.
+          {{ doc('active_customer') }}
+          {{ doc('churned_customer') }}
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: lifetime_net_revenue_eur
+        description: "Sum of fct_orders.net_revenue_eur for all orders linked to the account. Zero for an account with no orders. Uses the lab's 20% VAT assumption and keeps the same source limitations as net revenue."
+        data_type: double
+        tags: [pii]
+        meta: {classification: restricted}

@@ -1,0 +1,106 @@
+model,column,description,pii,classification,model_owner,domain,tier
+stg_products,product_id,Unique product ID used to join the catalogue to order lines.,False,internal,Head of Merchandising,product,silver
+stg_products,sku,Stock keeping unit supplied by the catalogue. Duplicate SKUs remain in the source.,False,internal,Head of Merchandising,product,silver
+stg_products,product_name,Product name shown in the catalogue.,False,internal,Head of Merchandising,product,silver
+stg_products,category,"Product category, trimmed with the first letter capitalized.",False,internal,Head of Merchandising,product,silver
+stg_products,list_price_eur,Catalogue price of one unit in EUROS with 2 decimals. Unreadable prices become NULL; negative source prices remain.,False,internal,Head of Merchandising,product,silver
+stg_products,supplier,Supplier company listed for the product.,False,internal,Head of Merchandising,product,silver
+stg_products,is_active,"True when the source is_active flag is 'Y', meaning the product is active in the catalogue.",False,internal,Head of Merchandising,product,silver
+stg_customers,customer_id,Customer account ID. One person can have more than one account.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,first_name,First name with spaces trimmed and the first letter capitalized.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,last_name,Last name with spaces trimmed and the first letter capitalized.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,email,"Email address, trimmed and lower-cased. Missing or malformed addresses are not fixed here.",True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,phone,Phone number as supplied by the CRM. Formats vary and some values are missing.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,birth_date,"Birth date parsed as YYYY-MM-DD. Unreadable dates become NULL, but impossible ages are not corrected.",True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,city,Customer's city as supplied by the CRM.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,country_code,"Customer's country standardized to FR, DE, ES or BE. Missing or unrecognized countries become NULL.",True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,signup_date,"Date the customer account was created, parsed as YYYY-MM-DD.",True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,has_marketing_consent,True when the source marketing_consent is 'true'. This records the supplied consent flag.,True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_customers,loyalty_tier,"Customer loyalty level: bronze, silver, gold or platinum. Case, spaces and the 'platinium' typo are fixed.",True,confidential,Sara Martin (Head of Sales),customer,silver
+stg_payments,payment_id,Unique payment record ID from the payment provider.,True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,order_id,"Order linked to this payment, which can be traced to a customer.",True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,payment_date,Payment date in YYYY-MM-DD. Some raw payment dates are earlier than their order dates.,True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,method,"Payment method: card, paypal, bank_transfer or apple_pay.",True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,amount,"Payment or refund amount in EUROS with 2 decimals - NOT cents. Refund amounts are positive; payment_status says how to use them. Example: 120.00 means EUR 120, not EUR 1.20.",True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,currency,Currency of the payment amount. The ShopFast lab accepts EUR only.,True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,card_last4,"Last four card digits, stored as text to keep leading zeros. Can be NULL. Some non-card payments incorrectly contain digits in the source.",True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_payments,payment_status,Payment state: captured or refunded. Raw status is renamed to payment_status.,True,restricted,Paul Girard (Head of Finance),finance,silver
+stg_order_items,order_item_id,Unique ID of an order line. It links a purchased item to an order.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_order_items,order_id,Order containing this product line. It can be linked to the customer account.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_order_items,product_id,Product bought on this order line. Some source IDs do not exist in the product catalogue.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_order_items,quantity,Number of units on the order line. Expected to be positive; source zero and negative quantities remain.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_order_items,unit_price_eur,"Selling price of one unit on this order line, in EUROS with 2 decimals.",True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,order_id,Order ID used to join order lines and payments. Duplicate IDs are reduced to one row.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,customer_id,Customer account that placed the order. Some raw IDs do not match an existing customer.,True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,order_date,"Date the order was placed, in YYYY-MM-DD. Missing or unreadable dates become NULL; future dates remain for review.",True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,status,"Order state: pending, shipped, delivered, cancelled or returned. 'canceled' is changed to 'cancelled'.",True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,channel,"Sales channel used for the order: web, mobile_app or marketplace.",True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,shipping_country,"Shipping destination country code: FR, DE, ES or BE.",True,confidential,Sara Martin (Head of Sales),sales,silver
+stg_orders,total_amount_eur,"Order total in EUROS with 2 decimals, including VAT and shipping. It is the order value, not proof of payment; six zero or negative source totals remain.",True,confidential,Sara Martin (Head of Sales),sales,silver
+fct_orders,order_id,"**Order** is a purchase request identified by order_id, including pending, shipped, delivered, returned and cancelled requests.
+Rule: count distinct order_id in stg_orders. Keep one row per order_id after sorting by order_date.
+Include every status for an order count, then apply the separate non-cancelled rule for active customers.
+Example only: two source rows with order_id 700001 count as one order. An order with status cancelled still counts as an order but does not make its customer active.
+Owner: Sara Martin (Head of Sales). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+An order is not the same as a captured payment. Payment records are stored separately in stg_payments.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,customer_id,"**Customer** is a registered ShopFast account identified by customer_id, whether or not it has placed an order.
+Rule: count distinct customer_id in stg_customers after removing exact duplicate rows. Different account IDs remain different customers even if they share an email.
+Example only: two copied rows with customer_id 10410 count as one customer. Two different customer IDs with the same email count as two accounts.
+Owner: Sara Martin (Head of Sales). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+The dataset identifies accounts, not unique people. A shared email is not enough to merge accounts.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,order_date,"Date the order was placed, copied from stg_orders. Missing and future source dates can remain.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,status,"Order state: pending, shipped, delivered, cancelled or returned.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,channel,"Sales channel used for the order: web, mobile_app or marketplace.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,shipping_country,"Country receiving the order: FR, DE, ES or BE.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,gross_revenue_eur,"**Gross revenue (EUR)** is the order total including VAT and shipping, before refunds.
+Rule: `gross_revenue_eur = stg_orders.total_amount_eur`.
+Example only: an order total of EUR 120.00 gives gross revenue of EUR 120.00.
+Owner: Sara Martin (Head of Sales). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+The starter model uses order totals, including pending orders, so this is not a measure of captured cash.",True,confidential,Paul Girard (Head of Finance),finance,gold
+fct_orders,refunded_eur,"Sum of positive payment amounts with payment_status = 'refunded' for this order, in EUR including VAT. Zero when there is no matching refund. Example: a EUR 24 refund gives 24.00.",True,restricted,Paul Girard (Head of Finance),finance,gold
+fct_orders,net_revenue_eur,"**Net revenue** is order revenue in euros after refunds and excluding VAT, with shipping included.
+Formula per order: `ROUND((gross_revenue_eur - refunded_eur) / 1.20, 2)`.
+Gross is orders.total_amount_eur. Refunds are the sum of payments.amount where payment_status = 'refunded', or zero when none exist.
+Example only: for an order total of EUR 120.00 and refunds of EUR 24.00, net revenue = (120.00 - 24.00) / 1.20 = EUR 80.00.
+Owner: Paul Girard (Head of Finance). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+The lab assumes 20% VAT for every order. Shipping is already in the order total and is not added again.
+Sales uses **sales revenue including VAT** = gross_revenue_eur - refunded_eur.
+The starter model uses order totals, not captured cash. Source errors and every order status remain in this lab calculation.",True,restricted,Paul Girard (Head of Finance),finance,gold
+dim_customers,customer_id,"**Customer** is a registered ShopFast account identified by customer_id, whether or not it has placed an order.
+Rule: count distinct customer_id in stg_customers after removing exact duplicate rows. Different account IDs remain different customers even if they share an email.
+Example only: two copied rows with customer_id 10410 count as one customer. Two different customer IDs with the same email count as two accounts.
+Owner: Sara Martin (Head of Sales). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+The dataset identifies accounts, not unique people. A shared email is not enough to merge accounts.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,first_name,"Customer's first name, copied from stg_customers.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,last_name,"Customer's last name, copied from stg_customers.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,email,"Customer email, trimmed and lower-cased. Missing and malformed source emails can remain.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,country_code,"Customer's standardized country: FR, DE, ES or BE. NULL when the source country is missing or unrecognized.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,loyalty_tier,"Customer loyalty level: bronze, silver, gold or platinum.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,signup_date,"Date the customer account was created, in YYYY-MM-DD.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,has_marketing_consent,"Supplied marketing consent flag, copied from stg_customers.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,lifetime_orders,"Count of all orders linked to the account, including cancelled orders and rows with missing or future dates. Zero for an account with no orders. This count does not decide active or churned status.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,last_order_date,"Latest non-cancelled order date on or before CURRENT_DATE when this table is built.
+NULL if the account has no such dated order. Missing dates do not count.
+Rebuild for a new reporting date before using the following rules.
+**Active customer** is a customer account with at least one non-cancelled order in the last 12 calendar months as of the reporting date.
+Rule: join fct_orders to stg_customers on customer_id. For reporting date D, count distinct registered customer_id where status <> 'cancelled' and order_date BETWEEN D - INTERVAL '12 months' AND D.
+Both boundary dates are included. Missing dates and future dates do not qualify.
+Example only: on 2026-11-25, an account with a non-cancelled order on 2026-04-10 is active for the company but outside the Sales 6-month window.
+Owner: Paul Girard (Head of Finance). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+Sales uses the separate label **recently active customer (6 months)**, with the same order rules and a 6-month window.
+In dim_customers, D is CURRENT_DATE when the table is built. Use last_order_date >= D - INTERVAL '12 months' after rebuilding for D.
+**Churned customer** is a customer account that ordered before but has no non-cancelled order in the last 12 calendar months as of the reporting date.
+Rule: for registered customer accounts and reporting date D, require at least one non-cancelled order dated on or before D, and none with order_date BETWEEN D - INTERVAL '12 months' AND D.
+In dim_customers, this means last_order_date < D - INTERVAL '12 months' after rebuilding for D.
+Accounts with no dated non-cancelled order are not labelled churned. The rule uses known dates, so undated orders need review.
+Example only: on 2026-11-25, an account whose last non-cancelled order was on 2025-10-01 is churned. An account that never ordered is not churned.
+Owner: Paul Girard (Head of Finance). Steward: Karim Benali (Analytics Engineer).
+Status: approved for this CTP3 exercise. Decision date: 2026-11-25.
+Use the company 12-month window.",True,confidential,Sara Martin (Head of Sales),customer,gold
+dim_customers,lifetime_net_revenue_eur,Sum of fct_orders.net_revenue_eur for all orders linked to the account. Zero for an account with no orders. Uses the lab's 20% VAT assumption and keeps the same source limitations as net revenue.,True,restricted,Sara Martin (Head of Sales),customer,gold

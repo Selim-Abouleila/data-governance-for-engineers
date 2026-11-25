@@ -10,6 +10,7 @@ These represent the CTPs of student **SELIM ABOULEILA** for the Data Governance 
   - [`customers_clean.csv`](./CTP2/customers_clean.csv) & [`openrefine_customers_recipe.json`](./CTP2/openrefine_customers_recipe.json) — cleaned customers file and replayable OpenRefine recipe.
   - [`gx_orders.py`](./CTP2/gx_orders.py) & [`gx_orders_data_docs.png`](./CTP2/gx_orders_data_docs.png) — completed 12-expectation suite for `orders.csv` and Data Docs screenshot.
   - [`gx_payments.py`](./CTP2/gx_payments.py) — replay of the "cents" bug (`payments.csv` passes, `payments_batch_2.csv` fails).
+- [`CTP3/`](./CTP3) — **CTP 3**: dbt catalog with owners and PII classifications, 3 exposures, a payments impact note, a 5-term glossary and a 15-column data dictionary. See [`CTP3/README.md`](./CTP3/README.md) for the commands and governance check output.
 - [`shopfast-kit/`](./shopfast-kit) — Raw CSV files, Docker Compose setup for PostgreSQL, and `check_setup.py`.
 
 ## Which governance guard was missing at ShopFast?

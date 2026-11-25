@@ -1,0 +1,266 @@
+version: 2
+
+# Customer and transaction fields can be linked to a person through their IDs.
+# Product catalogue fields are internal and do not describe a person.
+models:
+  - name: stg_customers
+    config:
+      tags: [pii]
+    description: "One row per customer account after removing exact duplicates and standardizing some text and dates. Missing and invalid source values can still remain."
+    meta:
+      owner: "Sara Martin (Head of Sales)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: customer
+      tier: silver
+    columns:
+      - name: customer_id
+        description: "Customer account ID. One person can have more than one account."
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: first_name
+        description: "First name with spaces trimmed and the first letter capitalized."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: last_name
+        description: "Last name with spaces trimmed and the first letter capitalized."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: email
+        description: "Email address, trimmed and lower-cased. Missing or malformed addresses are not fixed here."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: phone
+        description: "Phone number as supplied by the CRM. Formats vary and some values are missing."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: birth_date
+        description: "Birth date parsed as YYYY-MM-DD. Unreadable dates become NULL, but impossible ages are not corrected."
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: city
+        description: "Customer's city as supplied by the CRM."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: country_code
+        description: "Customer's country standardized to FR, DE, ES or BE. Missing or unrecognized countries become NULL."
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [FR, DE, ES, BE]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: signup_date
+        description: "Date the customer account was created, parsed as YYYY-MM-DD."
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: has_marketing_consent
+        description: "True when the source marketing_consent is 'true'. This records the supplied consent flag."
+        data_type: boolean
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: loyalty_tier
+        description: "Customer loyalty level: bronze, silver, gold or platinum. Case, spaces and the 'platinium' typo are fixed."
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [bronze, silver, gold, platinum]
+        tags: [pii]
+        meta: {classification: confidential}
+
+  - name: stg_orders
+    config:
+      tags: [pii]
+    description: "One row per order from the order system. Duplicate order IDs are removed and status spelling is standardized."
+    meta:
+      owner: "Sara Martin (Head of Sales)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: sales
+      tier: silver
+    columns:
+      - name: order_id
+        description: "Order ID used to join order lines and payments. Duplicate IDs are reduced to one row."
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: customer_id
+        description: "Customer account that placed the order. Some raw IDs do not match an existing customer."
+        data_type: integer
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: order_date
+        description: "Date the order was placed, in YYYY-MM-DD. Missing or unreadable dates become NULL; future dates remain for review."
+        data_type: date
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: status
+        description: "Order state: pending, shipped, delivered, cancelled or returned. 'canceled' is changed to 'cancelled'."
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [pending, shipped, delivered, cancelled, returned]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: channel
+        description: "Sales channel used for the order: web, mobile_app or marketplace."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: shipping_country
+        description: "Shipping destination country code: FR, DE, ES or BE."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: total_amount_eur
+        description: "Order total in EUROS with 2 decimals, including VAT and shipping. It is the order value, not proof of payment; six zero or negative source totals remain."
+        data_type: decimal(10,2)
+        tags: [pii]
+        meta: {classification: confidential}
+
+  - name: stg_order_items
+    config:
+      tags: [pii]
+    description: "One row per product line in an order, with its quantity and selling price. Source errors are kept for review."
+    meta:
+      owner: "Sara Martin (Head of Sales)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: sales
+      tier: silver
+    columns:
+      - name: order_item_id
+        description: "Unique ID of an order line. It links a purchased item to an order."
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: order_id
+        description: "Order containing this product line. It can be linked to the customer account."
+        data_type: integer
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: product_id
+        description: "Product bought on this order line. Some source IDs do not exist in the product catalogue."
+        data_type: integer
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: quantity
+        description: "Number of units on the order line. Expected to be positive; source zero and negative quantities remain."
+        data_type: integer
+        tags: [pii]
+        meta: {classification: confidential}
+      - name: unit_price_eur
+        description: "Selling price of one unit on this order line, in EUROS with 2 decimals."
+        data_type: decimal(10,2)
+        tags: [pii]
+        meta: {classification: confidential}
+
+  - name: stg_payments
+    config:
+      tags: [pii]
+    description: "One row per payment record with its current captured or refunded status. The supplied file is not a full history of payment events."
+    meta:
+      owner: "Paul Girard (Head of Finance)"
+      steward: "Karim Benali (Analytics Engineer)"
+      domain: finance
+      tier: silver
+    columns:
+      - name: payment_id
+        description: "Unique payment record ID from the payment provider."
+        data_type: integer
+        data_tests: [unique, not_null]
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: order_id
+        description: "Order linked to this payment, which can be traced to a customer."
+        data_type: integer
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: payment_date
+        description: "Payment date in YYYY-MM-DD. Some raw payment dates are earlier than their order dates."
+        data_type: date
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: method
+        description: "Payment method: card, paypal, bank_transfer or apple_pay."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: amount
+        description: "Payment or refund amount in EUROS with 2 decimals - NOT cents. Refund amounts are positive; payment_status says how to use them. Example: 120.00 means EUR 120, not EUR 1.20."
+        data_type: decimal(12,2)
+        data_tests: [not_null]
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: currency
+        description: "Currency of the payment amount. The ShopFast lab accepts EUR only."
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [EUR]
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: card_last4
+        description: "Last four card digits, stored as text to keep leading zeros. Can be NULL. Some non-card payments incorrectly contain digits in the source."
+        data_type: varchar
+        tags: [pii]
+        meta: {classification: restricted}
+      - name: payment_status
+        description: "Payment state: captured or refunded. Raw status is renamed to payment_status."
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [captured, refunded]
+        tags: [pii]
+        meta: {classification: restricted}
+
+  - name: stg_products
+    description: "One row per product in the catalogue, with its list price and supplier. Missing or negative source prices can still remain."
+    meta:
+      owner: "Head of Merchandising"
+      steward: "Product Catalog Data Steward"
+      domain: product
+      tier: silver
+    columns:
+      - name: product_id
+        description: "Unique product ID used to join the catalogue to order lines."
+        data_type: integer
+        data_tests: [unique, not_null]
+        meta: {classification: internal}
+      - name: sku
+        description: "Stock keeping unit supplied by the catalogue. Duplicate SKUs remain in the source."
+        data_type: varchar
+        meta: {classification: internal}
+      - name: product_name
+        description: "Product name shown in the catalogue."
+        data_type: varchar
+        meta: {classification: internal}
+      - name: category
+        description: "Product category, trimmed with the first letter capitalized."
+        data_type: varchar
+        meta: {classification: internal}
+      - name: list_price_eur
+        description: "Catalogue price of one unit in EUROS with 2 decimals. Unreadable prices become NULL; negative source prices remain."
+        data_type: decimal(10,2)
+        meta: {classification: internal}
+      - name: supplier
+        description: "Supplier company listed for the product."
+        data_type: varchar
+        meta: {classification: internal}
+      - name: is_active
+        description: "True when the source is_active flag is 'Y', meaning the product is active in the catalogue."
+        data_type: boolean
+        meta: {classification: internal}

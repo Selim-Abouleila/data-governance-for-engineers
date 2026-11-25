@@ -1,0 +1,6 @@
+shopfast_dbt/target/
+shopfast_dbt/logs/
+shopfast_dbt/dbt_packages/
+shopfast_dbt/*.duckdb
+shopfast_dbt/*.duckdb.wal
+shopfast_dbt/.user.yml
